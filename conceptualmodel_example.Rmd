@@ -1,0 +1,125 @@
+---
+title: "Conceputalmodels"
+author: "Jamie C Tam"
+date: "10/21/2021"
+output: html_document
+---
+
+### static graph example
+```{r}
+library(GGally) 
+library(network) 
+library(sna)
+library(ggplot2)
+library(RColorBrewer)
+
+LAN<-LesserAntillesNet_v9
+LAN<-LAN[,-1]
+Lan.names<-c("Swordfish", "Billfish", "Yellowfin", "Skipjack", "Albacore", "Bigeye", "Blackfin", "Offshore_predators", "Mackerel", "Wahoo", "Dolphinfish", "Flying_fish", "Coastal_predators", "Mesopelagic_fish", "Squid_small", "Zooplankton", "Phytoplankton", "Imports", "Effort_FAD", "Catch_FAD", "Market_FAD", "FADs", "Incentives_for_Maintenance", "Incentives_for_Placing_FADs", "Incentives_for_Monitoring", "Conflict", "Capacity_of_Exclusion", "Distribution_of_Apprpriation_Rights", "Income")
+
+rownames(LAN)<-Lan.names
+LAN.mat<-as.matrix(LAN)
+LAN.net <- as.network(LAN.mat, directed=T) #make network object
+
+
+LAN.net %v% "Type" = c(rep("Ecological", 17), rep("Social",12))
+
+
+set.seed(576)
+ggnet.LAN <- 
+  ggnet2(LAN.net, 
+       node.size = 8, node.color = "Type", 
+       color.palette = "Set2", color.legend = "Type", 
+       edge.size = 1, edge.color = "black",
+       arrow.size = 9,  arrow.gap = 0.027, 
+       legend.size=20)  + 
+       guides(color=guide_legend(keyheight=0.5,default.unit="inch",
+                                 override.aes = list(size=6)))
+
+
+
+```
+
+### Interactive graph
+```{r}
+
+library(igraph)
+library(visNetwork)
+set.seed(576)
+
+LAN.mat<-as.matrix(LAN)
+rownames(LAN.mat)<-c(1:29)
+colnames(LAN.mat)<-c(1:29)
+
+LAN.g<-graph.adjacency(LAN.mat)
+
+Lan.names<-c("Swordfish", "Billfish", "Yellowfin", "Skipjack", "Albacore", "Bigeye", "Blackfin", "Offshore_predators", "Mackerel", "Wahoo", "Dolphinfish", "Flying_fish", "Coastal_predators", "Mesopelagic_fish", "Squid_small", "Zooplankton", "Phytoplankton", "Imports", "Effort_FAD", "Catch_FAD", "Market_FAD", "FADs", "Incentives_for_Maintenance", "Incentives_for_Placing_FADs", "Incentives_for_Monitoring", "Conflict", "Capacity_of_Exclusion", "Distribution_of_Apprpriation_Rights", "Income")
+
+nodes <- data.frame(id = 1:29, label=Lan.names, group=c(rep("Ecological", 17), rep("Social",12)), title = paste0("<p>", 1:29,"<br>Metadata !</p>"), stringsAsFactors = FALSE)
+
+nodes$font.size<-40
+
+edges <- data.frame(get.edgelist(LAN.g))
+colnames(edges)<-c("from","to")
+
+# Plot with defaut layout
+# visNetwork(nodes, edges, height = "600px") %>%
+#   visIgraphLayout() %>%
+#   visNodes(size = 25) %>%
+#   visOptions(selectBy="group",
+#     highlightNearest = TRUE) %>%  
+#   visInteraction(keyboard = TRUE)
+
+# Add some community membership (a quick and dirty way)
+# nodes$group <- cluster_fast_greedy(g)$membership
+# nodes$value = betweenness(g,directed=F, normalized = T)
+# nodes$font.size <-28
+
+visNetwork(nodes, edges, height = "600px", width="100%") %>%
+  visEdges(arrows="to") %>%
+  visIgraphLayout() %>%
+  visNodes(size = 40) %>%
+  visOptions(selectedBy = "group", 
+             highlightNearest = TRUE, 
+             nodesIdSelection = TRUE) %>%
+  visInteraction(keyboard = TRUE,
+                 dragNodes = T, 
+                 dragView = T, 
+                 zoomView = T) 
+
+
+```
+
+## add a variable with some HTML as a character string
+```{r}
+nodes$title <- paste0("<p>Group: ", cluster_fast_greedy(g)$membership, "<br>",
+                      "Degree: ", degree(g),"</p>")
+
+visNetwork(nodes, edges, height = "600px") %>%
+  visIgraphLayout() %>%
+  visNodes(size = 40) %>%
+  visOptions(selectedBy = "group", 
+             highlightNearest = TRUE, 
+             nodesIdSelection = TRUE) %>%
+  visInteraction(keyboard = TRUE,
+                 dragNodes = T, 
+                 dragView = T, 
+                 zoomView = T)
+```
+
+## add icons or infografics
+```{r}
+path_to_images <- "https://raw.githubusercontent.com/datastorm-open/datastorm-open.github.io/master/visNetwork/data/img/indonesia/"
+ 
+nodes <- data.frame(id = 1:4, 
+                    shape = c("image", "circularImage"),
+                    image = paste0(path_to_images, 1:4, ".png"),
+                    label = "I'm an image")
+  
+edges <- data.frame(from = c(2,4,3,3), to = c(1,2,4,2))
+
+visNetwork(nodes, edges, width = "100%") %>% 
+  visNodes(shapeProperties = list(useBorderWithImage = TRUE)) %>%
+  visLayout(randomSeed = 2)
+```
+
